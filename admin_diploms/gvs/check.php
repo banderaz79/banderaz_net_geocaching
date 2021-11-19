@@ -24,7 +24,6 @@ file_put_contents ($_SESSION['LOGFILE'], $log, FILE_APPEND);
 if (isset($_SESSION['z_data'])) $z_data = $_SESSION['z_data'];
 else echo '<script type="text/javascript">document.location.href = "index.php";</script>';
 
-unset ($_SESSION['user_fotos']);
 unset ($_SESSION['zayavka']);
 unset ($_SESSION['diplom']);
 ?>
@@ -44,7 +43,19 @@ unset ($_SESSION['diplom']);
 		padding: 5px;
 		}
 
-	</style>	
+	</style>
+	<script type="text/javascript">  function view(n) 
+	{
+		style = document.getElementById(n).style;
+		style.display = (style.display == 'block') ? 'none' : 'block';
+	}
+	</script>
+	<script type="text/javascript">
+		function enable_btn()
+		{
+			document.getElementById('submit_btn').disabled=false;
+		}
+	</script>	
 </head>
 <body>
 
@@ -89,6 +100,7 @@ else
 	{
 		$const[$i++] = $row;
 	}
+	$_SESSION['const'] = $const;
 }
 foreach($const as $value)
 {
@@ -407,48 +419,47 @@ foreach($zayavka as $cid => $data)
 	
 	foreach($data as $key => $val)
 	{
-		echo"
+		if ($key !== 'suitable')
+		{	
+			echo"
 			<td ";
-		switch ($key) 
-		{
-			case 'cname_z':
-				echo"style='font-size: 9pt;'>$val</a>";
-				break;
-			case 'cdate_z':
-				echo"style='font-size: 9pt;'>$val</a>";
-				break;
-			case 'cid':
-
-				if (!array_key_exists(4, $__problem) and $data['punkt'] !== 1) echo "style='background: #88DDA0;'>";
-				else echo">";				
-				echo'<a href="https://geocaching.su/?pn=101&cid=' . $val . '" target="_blank">' . $val . '</a>';
-				break;
-			case 'region':
-				if (array_key_exists(7, $__problem)) echo "style='background: #FF4747;'>"; 
-				else echo">";
-				echo"$val";
-				break;
-			case 'cfound':
-				if (array_key_exists(5, $__problem)) echo "style='background: #FF4747;'>"; 
-				else echo">";
-				echo"$val";
-				break;
-			case 'status_comment':
-				if (array_key_exists(9, $__problem)) echo "style='background: #FF4747;'>"; 
-				else echo">";
-				echo"<img src='https://geocaching.su/images/commenticon/$val.png' alt='' style='width: 15pt'>";
-				break;
-			case 'comment':
-				if (array_key_exists(6, $__problem)) echo "style='background: #FF4747;'>"; 
-				else echo">";
-				echo"$val";
-				break;
-			default:
-				echo">$val";
-				break;
+			switch ($key) 
+			{
+				case 'cname_z':
+					echo"style='font-size: 9pt;'>$val</a>";
+					break;
+				case 'cid':
+					if (!array_key_exists(4, $__problem) and $data['punkt'] !== 1) echo "style='background: #88DDA0;'>";
+					else echo">";				
+					echo'<a href="https://geocaching.su/?pn=101&cid=' . $val . '" target="_blank">' . $val . '</a>';
+					break;
+				case 'region':
+					if (array_key_exists(7, $__problem)) echo "style='background: #FF4747;'>"; 
+					else echo">";
+					echo"$val";
+					break;
+				case 'cfound':
+					if (array_key_exists(5, $__problem)) echo "style='background: #FF4747;'>"; 
+					else echo">";
+					echo"$val";
+					break;
+				case 'status_comment':
+					if (array_key_exists(9, $__problem)) echo "style='background: #FF4747;'>"; 
+					else echo">";
+					echo"<img src='https://geocaching.su/images/commenticon/$val.png' alt='' style='width: 15pt'>";
+					break;
+				case 'comment':
+					if (array_key_exists(6, $__problem)) echo "style='background: #FF4747;'>"; 
+					else echo">";
+					echo"$val";
+					break;
+				default:
+					echo">$val";
+					break;
+			}
+			echo"
+				</td>";
 		}
-		echo"
-			</td>";
 	}
 	echo"
 		</tr>";
@@ -457,6 +468,8 @@ echo"
 	</table>";
 
 $first = reset($zayavka);
+
+echo '<form enctype="multipart/form-data" action="checkout.php" method="post" style="">';
 
 if ($first['cfound'] !== '(со)автор')
 {
@@ -473,12 +486,13 @@ if ($first['cfound'] !== '(со)автор')
 	
 	if($user_fotos[0])
 	{
-		echo '<p>Фото из альбома тайника ГВС:</br>';
+		echo '<p></br>Фото из альбома тайника ГВС:</p>';
+		echo '<div style="width: 100%; border: none; float: left;">';
 		foreach($user_fotos[0] as $foto)
 		{
-			echo '<a href="https://geocaching.su' . $foto . '" target="_blank"><img src="https://geocaching.su' . $foto . '" style="width: 200px; height: 200px; object-fit: cover; margin: 2px; border: solid 1px grey;"></a>';
+			echo '<div style="width: fit-content; text-align: center; border: none; float: left;"><a href="https://geocaching.su' . $foto . '" target="_blank"><img src="https://geocaching.su' . $foto . '" style="width: 200px; height: 200px; object-fit: cover; margin: 2px; border: solid 1px grey;"></a></br><input type="radio" value="' . $foto . '" name="foto" onclick="enable_btn()"></br> </br></div>';
 		}
-		echo '</p>';
+		echo '</div>';
 	}
 	else echo "<p style='background: #FF4747; color: white;'>&nbsp;&nbsp;В ФОТОАЛЬБОМЕ НЕТ ФОТОГРАФИЙ ИГРОКА!!!</p>";
 }
@@ -503,7 +517,8 @@ if (count($problem)>0)
 {
 	foreach($problem as $cid => $data)
 	{
-		echo "</br>";
+		echo '</br>
+		<p style="">';
 		if($zayavka[$cid]['ctype']) $kod = $zayavka[$cid]['ctype'] . "/" . $cid;
 		else $kod = $cid;
 		echo '&nbsp;&nbsp;<b><a href="https://geocaching.su/?pn=101&cid=' . $cid . '" target="_blank">' . $kod . '</a> - ' . $zayavka[$cid]['cname'] . '</b>.</br>';	
@@ -514,23 +529,24 @@ if (count($problem)>0)
 			if($err !== 4) echo "&nbsp;&nbsp;$errors[$err]</br>";
 			$is_problem = True;
 		}
+		echo '</p>';
 	}
 }
 
 if (!$diplom_exists or !$is_problem)
 {
-	if($user_fotos[0]) $_SESSION['user_fotos'] = $user_fotos[0];
+	//if($user_fotos[0]) $_SESSION['user_fotos'] = $user_fotos[0];
 	$_SESSION['zayavka'] = $zayavka;
 	$_SESSION['diplom'] = $diplom;
 	unset ($zayavka);
 	echo '
 	</br></br>
-	<form enctype="multipart/form-data" action="checkout.php" method="post" style="">
 		<div style="border: none; width: 100%;text-align: center;">
-			<input type="submit" value="Нажмите, чтобы продолжить" style="font-size: 16pt;">
-		</div>
-	</form>';
+			<input id="submit_btn" type="submit" value="Нажмите, чтобы продолжить" style="font-size: 16pt;" disabled>
+		</div>';
 }
+
+echo '</form>';
 
 echo'
 </br></br>
@@ -552,8 +568,5 @@ else
 	echo '<script type="text/javascript">alert("Перед тем, как продолжить, убедитесь, что:\n\n- есть фото игрока на фоне стелы ГВС\n\n- тайники, которых нет в базе подходящих тайников для данного ГВС, подходят по условиям.");</script>';
 }
 ?>
-
-		
-
 </body>
 </html>
