@@ -1,0 +1,5 @@
+AddType application/x-httpd-php .html .htm
+<FilesMatch ".(htaccess|htpasswd|ini|phps|fla|psd|log|sh)$">
+ Order Allow,Deny
+ Deny from all
+ </FilesMatch>
