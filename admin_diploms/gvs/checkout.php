@@ -51,7 +51,7 @@ if (isset($_SESSION['user_fotos'])) $user_fotos = $_SESSION['user_fotos'];
 
 <?php
 
-// Проверка   
+// Будем пробовать дальше
 echo"<pre>";
 print_r($diplom);
 echo"</pre>";
