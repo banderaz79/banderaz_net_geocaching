@@ -6,6 +6,8 @@ ini_set('display_startup_errors', 1);
 //require_once('../../../vendor/PhpOffice/autoload.php');
 require_once('../../../vendor/autoload.php');
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use \PhpOffice\PhpSpreadsheet\Reader\Xlsx;
+
 
 ob_start();
 session_start();
@@ -90,7 +92,7 @@ if (isset($_FILES['uploadfile']))
 		$uploadfile = $_SESSION['TMPDIR']."/"."gvs_";
 		$num = rand(10,1000);
 		while (file_exists($num)) $num++;
-		$uploadfile .= $num;
+		$uploadfile .= $num . '.' . $file_type;
 		move_uploaded_file($_FILES['uploadfile']['tmp_name'], $uploadfile);
 
 		//$fyletype = IOFactory::identify($uploadfile);
@@ -107,7 +109,7 @@ if (isset($_FILES['uploadfile']))
 		catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) 
 		{
 			//die('Error loading file: '.$e->getMessage());
-			echo '<script type="text/javascript">alert("Error loading file: ' . $e->getMessage() . '\n\nК сожалению, файл не может быть загружен.\n\nЧтобы избавиться от проблемы, откройте файл в Excel и просто пересохраните его (Ctrl+S).\n\nЗатем заново загрузите его здесь.");</script>';
+			echo '<script type="text/javascript">alert("Ошибка загрузки файла: ' . $e->getMessage() . '\n\nК сожалению, файл не может быть загружен.\n\nЧтобы избавиться от проблемы, откройте файл в Excel и просто пересохраните его (Ctrl+S).\n\nЗатем заново загрузите его здесь.");</script>';
 			echo '<script type="text/javascript">window.top.location.href = "index.php";</script>';
 			if ( !(@unlink($uploadfile)) ) die('Ошибка при удалении временного файла');
 			die("error");
@@ -133,7 +135,7 @@ if (isset($_FILES['uploadfile']))
 		$filetype = IOFactory::identify($uploadfile);
 		$reader = IOFactory::createReader($filetype);
 		$reader->setReadDataOnly(true);
-		$reader->setLoadSheetsOnly(["Заявка", "Данные"]);
+		$reader->setLoadSheetsOnly(["Заявка","111", "Данные"]);
 		$reader->setReadFilter( new MyReadFilter() );
 		$spreadsheet = $reader->load($uploadfile);
 
@@ -154,26 +156,35 @@ if (isset($_FILES['uploadfile']))
 		
 		$z_data = $spreadsheet->getSheet(0)->toArray(null, true, true, true);
 		
+/*echo'<pre>';
+print_r($z_data);
+echo'</pre>';*/
+//exit;		
 		
-		
-		foreach($z_data as $key => $value)
-		{
-			if(in_array($key,array(1,2,3,4,5,9,11,12,13,14,20,21))) unset($z_data[$key]);
-			else
-			{
-				foreach($value as $k => $v)
-				{
-					if(!$v == '') $z_data[$key][$k] = trim($v);
-					else unset($z_data[$key][$k]);
-					//if(preg_match('/^\d{1,2}\/\d{1,2}\/\d{1,4}$/', $v)) $z_data[$key][$k] = date("d.m.Y", strtotime($v));
-				}
-				unset($z_data[$key]['B']);
-				unset($z_data[$key]['D']);
-			}
-		}
 
-		if($z_data[6]['E'])
+		if(!$z_data[6]['E'])
 		{
+			echo '<script type="text/javascript">alert("В заявке не указан ник игрока!");</script>';
+			echo '<script type="text/javascript">window.top.location.href = "index.php";</script>';
+			die("error");
+		}
+		else
+		{
+			foreach($z_data as $key => $value)
+			{
+				if(in_array($key,array(1,2,3,4,5,9,11,12,13,14,20,21))) unset($z_data[$key]);
+				else
+				{
+					foreach($value as $k => $v)
+					{
+						if(!$v == '') $z_data[$key][$k] = trim($v);
+						else unset($z_data[$key][$k]);
+						//if(preg_match('/^\d{1,2}\/\d{1,2}\/\d{1,4}$/', $v)) $z_data[$key][$k] = date("d.m.Y", strtotime($v));
+					}
+					unset($z_data[$key]['B']);
+					unset($z_data[$key]['D']);
+				}
+			}
 			require 'tables.php';
 			require '../../Classes/loc.php';
 			$link = mysqli_connect($a,$b,$c,$d);
@@ -203,12 +214,6 @@ if (isset($_FILES['uploadfile']))
 				$_SESSION['z_data'] = $z_data;
 				echo '<script type="text/javascript">document.location.href = "check.php";</script>';
 			}
-		}
-		else
-		{
-			echo '<script type="text/javascript">alert("В заявке не указан ник игрока!");</script>';
-			echo '<script type="text/javascript">window.top.location.href = "index.php";</script>';
-			die("error");
 		}
 	}
 }

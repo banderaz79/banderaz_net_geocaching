@@ -44,12 +44,7 @@ unset ($_SESSION['diplom']);
 		}
 
 	</style>
-	<script type="text/javascript">  function view(n) 
-	{
-		style = document.getElementById(n).style;
-		style.display = (style.display == 'block') ? 'none' : 'block';
-	}
-	</script>
+
 	<script type="text/javascript">
 		function enable_btn()
 		{
@@ -111,15 +106,10 @@ foreach($const as $value)
 }
 
 // проверяем, есть ли у игрока уже такой диплом
-$diploms = array();
 $query = sprintf("SELECT 1 FROM $diploms_table WHERE `uid` = %u  AND `gid` = %u", mysqli_real_escape_string($link, $diplom['uid']), mysqli_real_escape_string($link, $diplom['gid']));
 $result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
 if (mysqli_num_rows ($result) !== 0)
 {
-	//echo '<script type="text/javascript">alert("У игрока уже есть диплом ' . $const[$diplom['gid']]['gvs'] . '");</script>';
-	//echo '<script type="text/javascript">document.location.href = "index.php";</script>';
-	//exit;
-	
 	$diplom_exists = True;
 }
 
@@ -369,7 +359,7 @@ echo"
 	</div>
 	<div style='padding:5px;'>
 		<div style='width: 5%; float:left; text-align:right; padding:0 15px 0 0;'>e-mail:</div>
-		<div>" . $diplom['email'] . "</div>
+		<div><a href='mailto:" . $diplom['email'] . "?subject=Re: Заявка на диплом ГВС " . $gvs . "'>" . $diplom['email'] . "</a></div>
 	</div>
 	";
 echo"</br></br>";
@@ -403,7 +393,7 @@ foreach($zayavka as $cid => $data)
 		<tr style='background: #FFCA95;'>";
 				break;
 			}
-			if(in_array($err, array(1,2,3,7))) 
+			if(in_array($err, array(1,2,3,7)) and $gvs !== 'Полярный') 
 			{
 				echo "
 		<tr style='background: #FF9393;'>";
@@ -491,13 +481,21 @@ if ($first['cfound'] !== '(со)автор')
 		foreach($user_fotos[0] as $foto)
 		{
 			echo '<div style="width: fit-content; text-align: center; border: none; float: left;"><a href="https://geocaching.su' . $foto . '" target="_blank"><img src="https://geocaching.su' . $foto . '" style="width: 200px; height: 200px; object-fit: cover; margin: 2px; border: solid 1px grey;"></a></br><input type="radio" value="' . $foto . '" name="foto" onclick="enable_btn()"></br> </br></div>';
+			$dis = 'disabled';
 		}
 		echo '</div>';
 	}
-	else echo "<p style='background: #FF4747; color: white;'>&nbsp;&nbsp;В ФОТОАЛЬБОМЕ НЕТ ФОТОГРАФИЙ ИГРОКА!!!</p>";
+	else
+	{
+		echo "<p style='background: #FF4747; color: white;'>&nbsp;&nbsp;В ФОТОАЛЬБОМЕ НЕТ ФОТОГРАФИЙ ИГРОКА!!!</p>";
+		$dis = 'disabled';
+	}
 }
-else echo "<p style='background: #88DDA0;'>&nbsp;&nbsp;Авторский тайник, фото не нужно.</p>";
-
+else
+{
+	echo "<p style='background: #88DDA0;'>&nbsp;&nbsp;Авторский тайник, фото не нужно.</p>";
+	$dis = '';
+}
 $errors = array(
 1 => 'Тайник не является основным тайником по данному ГВС.',
 2 => 'Тайник является основным тайником другого ГВС.',
@@ -535,14 +533,14 @@ if (count($problem)>0)
 
 if (!$diplom_exists or !$is_problem)
 {
-	//if($user_fotos[0]) $_SESSION['user_fotos'] = $user_fotos[0];
 	$_SESSION['zayavka'] = $zayavka;
 	$_SESSION['diplom'] = $diplom;
-	unset ($zayavka);
+	
+
 	echo '
 	</br></br>
 		<div style="border: none; width: 100%;text-align: center;">
-			<input id="submit_btn" type="submit" value="Нажмите, чтобы продолжить" style="font-size: 16pt;" disabled>
+			<input id="submit_btn" type="submit" value="Нажмите, чтобы продолжить" style="font-size: 16pt;" ' . $dis . '>
 		</div>';
 }
 
@@ -557,6 +555,9 @@ echo'
 			</tr>
 </table>
 </br>';
+
+unset ($zayavka);
+unset ($_SESSION['z_data']);
 
 if ($diplom_exists)
 {
