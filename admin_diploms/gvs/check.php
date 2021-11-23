@@ -106,11 +106,12 @@ foreach($const as $value)
 }
 
 // проверяем, есть ли у игрока уже такой диплом
+//$diplom_exists = 0;
 $query = sprintf("SELECT 1 FROM $diploms_table WHERE `uid` = %u  AND `gid` = %u", mysqli_real_escape_string($link, $diplom['uid']), mysqli_real_escape_string($link, $diplom['gid']));
 $result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
 if (mysqli_num_rows ($result) !== 0)
 {
-	$diplom_exists = True;
+	$diplom_exists = 1;
 }
 
 // загружаем из базы тайники, уже использованные игроком в других дипломах
@@ -159,7 +160,7 @@ for ($i=1; $i<3; $i++)
 	}
 }
 /*echo"<pre>";
-print_r($z_data);
+print_r($suitable);
 echo"</pre>";*/
 /*echo"<pre>";
 print_r($owned_caches_info);
@@ -300,7 +301,7 @@ echo"</pre>";*/
 	$zayavka[$cid_temp]['cname_z'] = $z_data[$i]['E'];
 	if($temp['cname'][$num[0]]) $zayavka[$cid_temp]['cname'] =  $temp['cname'][$num[0]];
 	else $zayavka[$cid_temp]['cname'] = $x_cache['name'];
-	$zayavka[$cid_temp]['region'] =  $temp['region'][$num[0]];
+	$zayavka[$cid_temp]['region'] =  trim($temp['region'][$num[0]]);
 	$zayavka[$cid_temp]['cdate'] =  $temp['cdate'][$num[0]];
 	$zayavka[$cid_temp]['cfound'] = $cfound;
 	$zayavka[$cid_temp]['status_comment'] =  $status_comment;
@@ -509,7 +510,7 @@ $errors = array(
 );
 //echo "</br></br>";
 
-$is_problem = False;
+//$is_problem = 0;
 
 if (count($problem)>0)
 {
@@ -521,22 +522,29 @@ if (count($problem)>0)
 		else $kod = $cid;
 		echo '&nbsp;&nbsp;<b><a href="https://geocaching.su/?pn=101&cid=' . $cid . '" target="_blank">' . $kod . '</a> - ' . $zayavka[$cid]['cname'] . '</b>.</br>';	
 		if(array_key_exists(4,$data)) echo "&nbsp;&nbsp;$errors[4]</br>";
-		//else ($suitable[$cid]
+
 		foreach($data as $err => $nn)
 		{
-			if($err !== 4) echo "&nbsp;&nbsp;$errors[$err]</br>";
-			$is_problem = True;
+			if($err !== 4)
+			{
+				$is_problem = True;
+				if (array_key_exists(5,$data)) 
+				{
+					echo "&nbsp;&nbsp;$errors[5]</br>";
+					break;
+				}
+				else echo "&nbsp;&nbsp;$errors[$err]</br>";
+			}
+			
 		}
 		echo '</p>';
 	}
 }
 
-if (!$diplom_exists or !$is_problem)
+if (!$diplom_exists and !$is_problem)
 {
 	$_SESSION['zayavka'] = $zayavka;
 	$_SESSION['diplom'] = $diplom;
-	
-
 	echo '
 	</br></br>
 		<div style="border: none; width: 100%;text-align: center;">
@@ -566,8 +574,9 @@ if ($diplom_exists)
 }
 else
 {
-	echo '<script type="text/javascript">alert("Перед тем, как продолжить, убедитесь, что:\n\n- есть фото игрока на фоне стелы ГВС\n\n- тайники, которых нет в базе подходящих тайников для данного ГВС, подходят по условиям.");</script>';
+	//echo '<script type="text/javascript">alert("Перед тем, как продолжить, убедитесь, что:\n\n- есть фото игрока на фоне стелы ГВС\n\n- тайники, которых нет в базе подходящих тайников для данного ГВС, подходят по условиям.");</script>';
 }
+
 ?>
 </body>
 </html>

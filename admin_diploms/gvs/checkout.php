@@ -28,8 +28,11 @@ if (isset($_SESSION['zayavka']) and isset($_SESSION['diplom']) and $_SESSION['co
 	$const = $_SESSION['const'];
 }
 else echo '<script type="text/javascript">document.location.href = "index.php";</script>';
-if (isset($_POST['foto'])) $diplom['gvs_foto'] = $gvs_foto = $_POST['foto'];
+
+if (isset($_SESSION['diplom']['gvs_foto'])) $diplom['gvs_foto'] = $gvs_foto = $_SESSION['diplom']['gvs_foto'];
+elseif (isset($_POST['foto'])) $diplom['gvs_foto'] = $gvs_foto = $_POST['foto'];
 else $diplom['gvs_foto'] = $gvs_foto = '/images/unknown.jpg';
+$_SESSION['diplom'] = $diplom;
 ?>
 
 <html>
@@ -59,6 +62,7 @@ else $diplom['gvs_foto'] = $gvs_foto = '/images/unknown.jpg';
 require '../../Classes/loc.php';
 require 'tables.php';
 $link = mysqli_connect($a,$b,$c,$d);
+
 if (!$link) 
 {
 	printf("Невозможно подключиться к базе данных. Код ошибки: %s\n", mysqli_connect_error());
@@ -77,11 +81,11 @@ if (mysqli_num_rows ($result) == 0)
 else 
 {
 	$row = mysqli_fetch_assoc($result);
-	$diplom['num'] = $row['MAX(diplom_num)']+1;
-	$num = str_pad($diplom['num'], 3, '0', STR_PAD_LEFT);
+	$diplom['diplom_num'] = (int)$row['MAX(diplom_num)']+1;
+	$diplom_num = $diplom['gid'] . '-' . str_pad($diplom['diplom_num'], 3, '0', STR_PAD_LEFT);
 }
 
-$diplom['stars'] = $diplom['stars']+1;
+$diplom['stars'] = (int)$diplom['stars']+1;
 /*echo"<pre>";
 print_r($row['MAX(diplom_num)']);
 echo"</pre>";*/
@@ -135,7 +139,7 @@ $st_td = 'rowspan="5" style="text-align: center; width: ';
 echo '
 <table>
 	<tr  style="">
-		<td '. $st_td . $h_width[0] . 'pt;">' . $diplom['gid'] . '-' . $num . '</td>
+		<td '. $st_td . $h_width[0] . 'pt;">' . $diplom_num . '</td>
 		<td '. $st_td . $h_width[1] . 'pt;">' . date("d.m.Y") . '</td>
 		<td '. $st_td . $h_width[2] . 'pt;">' . $const[$diplom['gid']]['gvs'] . '</td>
 		<td '. $st_td . $h_width[3] . 'pt;">' . $const[$diplom['gid']]['region'] . '</td>
@@ -168,7 +172,7 @@ echo '
 echo '
 </br>
 <p>
-	Игроку <b>' . $diplom['user'] . '</b> будет выдан (записан в базу) диплом <b>' . $const[$diplom['gid']]['gvs'] . '</b> № <b>' . $diplom['gid'] . '-' . $num . '</b> от <b>' . date("d.m.Y") . '</b> и присвоена <b>' . $diplom['stars'] . '-я</b> звезда.
+	Игроку <b>' . $diplom['user'] . '</b> будет выдан (записан в базу) диплом <b>' . $const[$diplom['gid']]['gvs'] . '</b> № <b>' . $diplom_num . '</b> от <b>' . date("d.m.Y") . '</b> и присвоена <b>' . $diplom['stars'] . '-я</b> звезда.
 </p>
 </br>
 ';
@@ -182,11 +186,11 @@ foreach ($zayavka as $key => $data)
 		if($data['suitable'] !== True) 
 		{
 			$caches_to_suit[$key]['cname'] = $data['cname'];
-			$caches_to_suit[$key]['region'] = $data['region'];
+			$caches_to_suit[$key]['cregion'] = $data['region'];
 		}
 	}
 }
-$diplom['used'] = implode(',', $used);
+$diplom['used_caches'] = implode(',', $used);
 
 if ($caches_to_suit)
 {
@@ -198,38 +202,35 @@ if ($caches_to_suit)
 		echo '<li style="list-style-type: none;">' . $cid . ' ' . $data['cname'] . '</li>';
 	}
 	echo '</ul>';
-	$suit = 1;
 } 
 
-//$extra = $diplom['stars']/10;
+
 if (is_int($diplom['stars']/10))
 {
-
-	$diploms = array();
-	$query = sprintf("SELECT MAX(diplom_num) FROM $extra_table WHERE `uid` = %u  AND `extra_diplom` = %u", mysqli_real_escape_string($link, $diplom['uid']), mysqli_real_escape_string($link, $extra));
+	$diplom['extra_diplom'] = $diplom['stars']/10;
+	
+	$query = sprintf("SELECT MAX(extra_num) FROM $extra_table WHERE `extra_diplom` = %u", $stepen);
 	$result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
 	if (mysqli_num_rows ($result) !== 0)
 	{
 		$row = mysqli_fetch_assoc($result);
-		$diplom['extra'] = $row['MAX(diplom_num)']+1;
-		$extra = str_pad($diplom['extra'], 3, '0', STR_PAD_LEFT);
+		$diplom['extra_num'] = $row['MAX(extra_num)']+1;
+		$extra_num = str_pad($diplom['extra_num'], 3, '0', STR_PAD_LEFT);
 	}
 	echo '
 	</br>
 	<p>
-		Так же игроку <b>' . $diplom['user'] . '</b> будет выдан (записан в базу) дополнительный диплом <b>' . $diplom['stars']/10 . '-й</b> степени № <b>' . $extra . '</b> от <b>' . date("d.m.Y") . '</b>.
+		Так же игроку <b>' . $diplom['user'] . '</b> будет выдан (записан в базу) дополнительный диплом <b>' . $diplom['extra_diplom'] . '-й</b> степени № <b>' . $extra_num . '</b> от <b>' . date("d.m.Y") . '</b>.
 	</p>
 	</br>
 	';
 }
 
-$_SESSION['diplom'] = $diplom;
-unset ($_SESSION['zayavka']);
-
 echo '
 	</br></br>
-	<form enctype="multipart/form-data" action="add_diplom.php" method="post" style="">	
+	<form enctype="multipart/form-data" action="" method="post" style="">	
 		<div style="border: none; width: 100%;text-align: center;">
+			<input name="go" type="hidden" value="1">
 			<input id="submit_btn" type="submit" value="Записать в базу" style="font-size: 16pt;">
 		</div>
 	</form>';
@@ -244,22 +245,53 @@ echo'
 </table>
 </br>';
 
+if ($_POST['go'])
+{
+	$diplom_ok = '';
+	$diplom_err = '';
+	$suit_err = "";
+	$suit_ok = "";
+	$extra_err = "";
+	$extra_ok = "";
 
-echo"<pre>";
-print_r($diplom);
-echo"</pre>";
+	$diplom_date = date("d.m.Y");
+	$values = array($diplom['uid'], $diplom['gid'], $diplom['diplom_num'], '"'.$diplom_date.'"', $diplom['stars'], '"'.$diplom['used_caches'].'"', '"'.$diplom['gvs_foto'].'"');
+	$str = implode(',',$values);
 
-echo"<pre>";
-print_r($zayavka);
-echo"</pre>";
+	//include_once ('add_diplom.php');
+	
+	if ($caches_to_suit)
+	{
+		foreach ($caches_to_suit as $cid => $data)
+		{
+			$values = array($cid, '"' . mysqli_real_escape_string($link, $caches_to_suit[$cid]['cname']) . '"', '"' . mysqli_real_escape_string($link, $caches_to_suit[$cid]['cregion']) . '"');
+			$str = implode(',',$values);
+			include ('add_suitable.php');
+		}
+	}
 
-echo"<pre>";
-print_r($gvs_foto);
-echo"</pre>";
+	if ($diplom['extra_diplom'])
+	{
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		
+// ТУТ НУЖНО ВЫТАЩИТЬ ИЗ БАЗЫ ДИПЛОМОВ GIDы ДЕСЯТИ ДИПЛОМОВ
+		
+		$values = array((int)$diplom['uid'], (int)$diplom['extra_diplom'], (int)$diplom['extra_num'], '"'.$diplom_date.'"','""');
+		$str = implode(',',$values);
+		include_once ('add_extra_diplom.php');
+	}
+	
+	$message = $diplom_ok . $diplom_err . $extra_ok . $extra_err . $suit_ok . $suit_err;
 
-echo"<pre>";
-print_r($caches_to_suit);
-echo"</pre>";
+	unset ($_SESSION['diplom']);
+	unset ($_SESSION['zayavka']);
+	echo '<script type="text/javascript">alert("' . $message . '");</script>';
+	echo '<script type="text/javascript">window.top.location.href = "";</script>';
+	exit;
+
+////////////////////////////////////////////////////////////////////	
+// ПЕРЕХОД НА СТРАНИЦУ ИГРОКА, ГДЕ БУДУТ ВЫВЕДЕНЫ ДИПЛОМЫ И ДАННЫЕ
+
+}
 
 ?>
 
