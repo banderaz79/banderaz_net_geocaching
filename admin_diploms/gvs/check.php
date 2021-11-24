@@ -106,7 +106,7 @@ foreach($const as $value)
 }
 
 // проверяем, есть ли у игрока уже такой диплом
-//$diplom_exists = 0;
+
 $query = sprintf("SELECT 1 FROM $diploms_table WHERE `uid` = %u  AND `gid` = %u", mysqli_real_escape_string($link, $diplom['uid']), mysqli_real_escape_string($link, $diplom['gid']));
 $result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
 if (mysqli_num_rows ($result) !== 0)
@@ -185,7 +185,12 @@ for($i=15; $i<20; $i++)
 	{
 		if($const[$diplom['gid']]['cid'] !== $z_data[15]['C'])
 		{
-			$problem[$z_data[$i]['C']][] = 1;
+			if ($gvs !== 'Полярный') $problem[$z_data[$i]['C']][] = 1;
+			else 
+			{
+				// проверка, не было ли уже этого тайника в других дипломах игрока
+				if(in_array($z_data[$i]['C'], $used_caches)) $problem[$z_data[$i]['C']][] = 3;
+			}
 		}
 	}
 	else
@@ -201,7 +206,7 @@ for($i=15; $i<20; $i++)
 		// проверка, не было ли уже этого тайника в других дипломах игрока
 		if(in_array($z_data[$i]['C'], $used_caches)) $problem[$z_data[$i]['C']][] = 3;
 	}
-	if($i !== 15)
+	if(($i !== 15) or ($i == 15 and $gvs == 'Полярный'))
 	{
 		if(!in_array($z_data[$i]['C'], $suitable)) $problem[$z_data[$i]['C']][] = 4; // тайник не входит в список подходящих
 		else $z_data[$i]['suitable'] = True;
@@ -383,29 +388,38 @@ echo"	</tr>";
 foreach($zayavka as $cid => $data)
 {
 	$__problem = array();
-	if(array_key_exists($data['cid'], $problem))
+
+	if ($diplom_exists)
 	{
-		$__problem = $problem[$data['cid']];
-		foreach($__problem as $err => $nn)
+		echo "
+			<tr style='background: #FF9393;'>";
+	}
+	else
+	{
+		if(array_key_exists($data['cid'], $problem))
 		{
-			if(in_array($err, array(8))) 
+			$__problem = $problem[$data['cid']];
+			foreach($__problem as $err => $nn)
 			{
-				echo "
-		<tr style='background: #FFCA95;'>";
-				break;
-			}
-			if(in_array($err, array(1,2,3,7)) and $gvs !== 'Полярный') 
-			{
-				echo "
-		<tr style='background: #FF9393;'>";
-				break;
+				if(in_array($err, array(8))) 
+				{
+					echo "
+			<tr style='background: #FFCA95;'>";
+					break;
+				}
+				if(in_array($err, array(1,2,3,7)))
+				{
+					echo "
+			<tr style='background: #FF9393;'>";
+					break;
+				}
 			}
 		}
-	}
-	else 
-	{
-		echo"
-		<tr style='background: #88DDA0;'>";
+		else 
+		{
+			echo"
+			<tr style='background: #88DDA0;'>";
+		}
 	}
 	
 	foreach($data as $key => $val)
@@ -420,7 +434,7 @@ foreach($zayavka as $cid => $data)
 					echo"style='font-size: 9pt;'>$val</a>";
 					break;
 				case 'cid':
-					if (!array_key_exists(4, $__problem) and $data['punkt'] !== 1) echo "style='background: #88DDA0;'>";
+					if (!array_key_exists(4, $__problem) and !$diplom_exists) echo "style='background: #88DDA0;'>";
 					else echo">";				
 					echo'<a href="https://geocaching.su/?pn=101&cid=' . $val . '" target="_blank">' . $val . '</a>';
 					break;
@@ -508,9 +522,6 @@ $errors = array(
 9 => 'Cтатус записи отличен от "найден" или "восстановлен".',
 4 => 'Тайника пока нет в базе подходящих тайников для данного ГВС. Проверьте, подходит ли он под условия перед тем, как продолжить.' 
 );
-//echo "</br></br>";
-
-//$is_problem = 0;
 
 if (count($problem)>0)
 {
@@ -520,7 +531,7 @@ if (count($problem)>0)
 		<p style="">';
 		if($zayavka[$cid]['ctype']) $kod = $zayavka[$cid]['ctype'] . "/" . $cid;
 		else $kod = $cid;
-		echo '&nbsp;&nbsp;<b><a href="https://geocaching.su/?pn=101&cid=' . $cid . '" target="_blank">' . $kod . '</a> - ' . $zayavka[$cid]['cname'] . '</b>.</br>';	
+		if ($data) echo '&nbsp;&nbsp;<b><a href="https://geocaching.su/?pn=101&cid=' . $cid . '" target="_blank">' . $kod . '</a> - ' . $zayavka[$cid]['cname'] . '</b>.</br>';	
 		if(array_key_exists(4,$data)) echo "&nbsp;&nbsp;$errors[4]</br>";
 
 		foreach($data as $err => $nn)
@@ -545,6 +556,13 @@ if (!$diplom_exists and !$is_problem)
 {
 	$_SESSION['zayavka'] = $zayavka;
 	$_SESSION['diplom'] = $diplom;
+	if($gvs == 'Полярный')
+	{
+		$dis = '';
+		echo '
+		</br></br>
+		<p style="background: #FFCA95;">Это заявка по ГВС ПОЛЯРНЫЙ. В фотоальбомах может не быть необходимой фотографии. Убедитесь, что игрок прислал нужное фото.</p> ';
+	}
 	echo '
 	</br></br>
 		<div style="border: none; width: 100%;text-align: center;">

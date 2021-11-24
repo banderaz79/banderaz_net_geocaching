@@ -86,6 +86,7 @@ else
 }
 
 $diplom['stars'] = (int)$diplom['stars']+1;
+$uid = $diplom['uid'];
 /*echo"<pre>";
 print_r($row['MAX(diplom_num)']);
 echo"</pre>";*/
@@ -180,7 +181,7 @@ echo '
 $caches_to_suit = array();
 foreach ($zayavka as $key => $data)
 {
-	if ($data['punkt'] !== 1)
+	if (($data['punkt'] !== 1) or ($data['punkt'] == 1 and $diplom['gid'] == 11))
 	{
 		$used[] = $key;
 		if($data['suitable'] !== True) 
@@ -207,7 +208,7 @@ if ($caches_to_suit)
 
 if (is_int($diplom['stars']/10))
 {
-	$diplom['extra_diplom'] = $diplom['stars']/10;
+	$diplom['extra_diplom'] = $extra_diplom = $diplom['stars']/10;
 	
 	$query = sprintf("SELECT MAX(extra_num) FROM $extra_table WHERE `extra_diplom` = %u", $stepen);
 	$result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
@@ -258,7 +259,7 @@ if ($_POST['go'])
 	$values = array($diplom['uid'], $diplom['gid'], $diplom['diplom_num'], '"'.$diplom_date.'"', $diplom['stars'], '"'.$diplom['used_caches'].'"', '"'.$diplom['gvs_foto'].'"');
 	$str = implode(',',$values);
 
-	//include_once ('add_diplom.php');
+	include_once ('add_diplom.php');
 	
 	if ($caches_to_suit)
 	{
@@ -275,7 +276,7 @@ if ($_POST['go'])
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		
 // ТУТ НУЖНО ВЫТАЩИТЬ ИЗ БАЗЫ ДИПЛОМОВ GIDы ДЕСЯТИ ДИПЛОМОВ
 		
-		$values = array((int)$diplom['uid'], (int)$diplom['extra_diplom'], (int)$diplom['extra_num'], '"'.$diplom_date.'"','""');
+		$values = array((int)$uid, (int)$extra_diplom, (int)$extra_num, '"'.$diplom_date.'"','""');
 		$str = implode(',',$values);
 		include_once ('add_extra_diplom.php');
 	}
