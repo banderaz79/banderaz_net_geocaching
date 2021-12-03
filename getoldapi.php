@@ -1,5 +1,5 @@
 <?php
-ob_start();
+/*ob_start();
 session_start();
 
 if(!$_SESSION['token']) 
@@ -14,7 +14,7 @@ if(!$_SESSION['token'])
 	ob_end_flush();
 	exit;
 }
-ob_end_flush();
+ob_end_flush();*/
 
 require "Classes/xmlstr_to_array.php";
 
@@ -22,7 +22,7 @@ function  oldapicurl($url)
 {
 	$ch = curl_init($url);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($ch, CURLOPT_COOKIEFILE, $_SESSION['cookiefile']);
+	//curl_setopt($ch, CURLOPT_COOKIEFILE, $_SESSION['cookiefile']);
 	curl_setopt($ch, CURLOPT_VERBOSE, true);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);

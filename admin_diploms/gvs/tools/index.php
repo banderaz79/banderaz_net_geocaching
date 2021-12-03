@@ -67,17 +67,6 @@ if (isset($_FILES['uploadfile']))
 	$file_type = pathinfo($_FILES['uploadfile']['name'], PATHINFO_EXTENSION);
 	$file_name = pathinfo($_FILES['uploadfile']['name'], PATHINFO_BASENAME);
 
-    echo'<pre>';
-    print_r($file_type);
-    echo'</pre>';
-
-    echo'<pre>';
-    print_r($file_name);
-    echo'</pre>';
-
-    echo'<pre>';
-    print_r($_FILES['uploadfile']['error']);
-    echo'</pre>';
 	
 // Проверки
 	if($file_name == "") {
@@ -131,14 +120,11 @@ if (isset($_FILES['uploadfile']))
 		{
 			public function readCell($columnAddress, $row, $worksheetName = '') 
 			{
-				if (in_array($columnAddress, ['C','D','E'])) 
+				if ((in_array($columnAddress, ['D','E']) and $row !== 1) or (in_array($row, [2,3]) and in_array($columnAddress, ['A','B']))) 
 				{
 					return true;
 				}
-                if (in_array($row, [2,3]) and in_array($columnAddress, ['A','B'])) 
-				{
-					return true;
-				}
+
 				return false;
 			}
 		}   
@@ -167,12 +153,132 @@ if (isset($_FILES['uploadfile']))
 		
 		$z_data = $spreadsheet->getSheet(0)->toArray(null, true, true, true);
 
-        echo'<pre>';
-        print_r($z_data);
-        echo'</pre>';
+		if (trim($z_data[2]['A']) !== '') $user['nik'] = trim($z_data[2]['A']);
+		else $user['nik'] = trim($z_data[3]['A']);
+		if (trim($z_data[2]['B']) !== '') $user['url'] = trim($z_data[2]['B']);
+		else $user['url'] = trim($z_data[3]['B']);
+		
+		unset($z_data[2]['A']);
+		unset($z_data[2]['B']);
 
-    }
+
+		foreach ($z_data as $key => $value)
+		{
+			foreach ($value as $k => $v)
+			{
+				if (!$v) unset ($z_data[$key][$k]);
+				else $z_data[$key][$k] = trim($z_data[$key][$k]);
+			}
+			if (!$z_data[$key]) unset ($z_data[$key]);
+		}
+
+
+		require '../tables.php';
+		require '../../../Classes/loc.php';
+		$link = mysqli_connect($a,$b,$c,$d);
+		if (!$link) 
+		{
+			printf("Невозможно подключиться к базе данных. Код ошибки: %s\n", mysqli_connect_error());
+			exit;
+		}
+		
+
+		//загружаем из базы таблицу с константами гвс
+		$query = sprintf("SELECT * FROM $const_table");
+		$result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
+		if (mysqli_num_rows ($result) == 0)
+		{
+			echo '<script type="text/javascript">alert("Что-то пошло не так...");</script>';
+			echo '<script type="text/javascript">document.location.href = "index.php";</script>';
+			
+		}
+		else 
+		{
+			$i=1;
+			while($row = mysqli_fetch_assoc($result))
+			{
+				$const[$i++] = $row;
+			}
+			$_SESSION['const'] = $const;
+		}
+		$const = $_SESSION['const'];
+
+		foreach ($_SESSION['const'] as $key => $value)
+		{
+			$gvs_list[$key] = $value['gvs'];
+		}
+
+		$n = 0;
+		foreach ($z_data as $key => $value)
+		{
+			preg_match('/^(.+).[A-Z]{2}\/(\d{1,5})/', $value['E'], $cid);
+
+			if($cid)
+			{
+				if (isset($value['D']) and in_array($value['D'], $gvs_list))
+				{
+					$n++;
+					$diploms[$n]['gid'] = array_search($value['D'], $gvs_list);
+					$diploms[$n]['gvs'] = $value['D'];
+					$diploms[$n]['region'] = $const[$diploms[$n]['gid']]['region'];
+					$diploms[$n]['num'] = ltrim(substr($z_data[$key+1]['D'],3), '0');
+					$diploms[$n]['date'] = date("d.m.Y", strtotime($z_data[$key+2]['D']));
+					$diploms[$n]['stars'] = substr($z_data[$key+3]['D'], 0, -13);
+
+					if ($value['D'] == 'Полярный')
+					{
+						require_once('../../../getoldapi.php');
+						$cache = getoldapi(2, $cid[2], '');
+						$diploms[$n]['used_caches'][$cid[2]] = $cache['name'];
+					}
+					else 
+					{
+						$diploms[$n]['main_cid'] = $cid[2];
+						$diploms[$n]['main_cache'] = $cid[1];
+					}
+				}
+				else
+				{
+					//if(isset($cid[2])) 
+					//{
+						require_once('../../../getoldapi.php');
+						$cache = getoldapi(2, $cid[2], '');
+						$diploms[$n]['used_caches'][$cid[2]] = $cache['name'];
+					//}
+				}
+			}
+			else 
+			{
+				echo '<script type="text/javascript">alert("Похоже, в ячейках нет id тайников");</script>';
+				echo '<script type="text/javascript">document.location.href = "index.php";</script>';
+				exit;
+			}
+			
+		}
+		unset ($z_data);
+	}
+	
+	$_SESSION['user'] = $user;
+	$_SESSION['diploms'] = $diploms;
+
+echo'<pre>';
+print_r($user);
+echo'</pre>';
+	
+echo'<pre>';
+print_r($diploms);
+echo'</pre>';
+
+	echo '
+	<form enctype="multipart/form-data" action="insert_diploms.php" method="post" style="">	
+		<div style="border: none; width: 100%;text-align: center;">
+			<input name="go" type="hidden" value="1">
+			<input id="submit_btn" type="submit" value="Записать в базу" style="font-size: 16pt;">
+		</div>
+	</form>';
+
 }
+
 
 
 ?>

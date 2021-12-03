@@ -24,6 +24,8 @@ file_put_contents ($_SESSION['LOGFILE'], $log, FILE_APPEND);
 if (isset($_SESSION['zayavka']) and isset($_SESSION['diplom']) and $_SESSION['const']) 
 {
 	$diplom = $_SESSION['diplom']; 
+	$uid = $diplom['uid'];
+	$gid = $diplom['gid'];
 	$zayavka = $_SESSION['zayavka'];
 	$const = $_SESSION['const'];
 }
@@ -70,7 +72,7 @@ if (!$link)
 }
 
 //загружаем из базы таблицу с дипломами текущего ГВС
-$query = sprintf("SELECT MAX(diplom_num) FROM $diploms_table WHERE `gid` =  %u", mysqli_real_escape_string($link, $diplom['gid']));
+$query = sprintf("SELECT MAX(diplom_num) FROM $diploms_table WHERE `gid` =  %u", mysqli_real_escape_string($link, $gid));
 $result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
 if (mysqli_num_rows ($result) == 0)
 {
@@ -82,14 +84,12 @@ else
 {
 	$row = mysqli_fetch_assoc($result);
 	$diplom['diplom_num'] = (int)$row['MAX(diplom_num)']+1;
-	$diplom_num = $diplom['gid'] . '-' . str_pad($diplom['diplom_num'], 3, '0', STR_PAD_LEFT);
+	$num_str = $gid . '-' . str_pad($diplom['diplom_num'], 3, '0', STR_PAD_LEFT);
 }
 
-$diplom['stars'] = (int)$diplom['stars']+1;
-$uid = $diplom['uid'];
-/*echo"<pre>";
-print_r($row['MAX(diplom_num)']);
-echo"</pre>";*/
+$stars = $diplom['stars'] = (int)$diplom['stars']+1;
+
+$diplom_num = $diplom['diplom_num'];
 
 echo "
 	<div style='padding:5px;'>
@@ -104,7 +104,7 @@ echo "
 	</div>
 	<div style='padding:5px;'>
 		<div style='width: 5%; float:left; text-align:right; padding:0 15px 0 0;'>звезды:</div>
-		<div style='font-weight: bold; display: table-cell;'>" . $diplom['stars'] . "</div>
+		<div style='font-weight: bold; display: table-cell;'>" . $stars . "</div>
 		<div style='font-size: 10pt;  padding:0 0 0 10px; display: table-cell;'>(с учетом данного диплома)</div>
 	</div>
 	<div style='padding:5px;'>
@@ -140,14 +140,23 @@ $st_td = 'rowspan="5" style="text-align: center; width: ';
 echo '
 <table>
 	<tr  style="">
-		<td '. $st_td . $h_width[0] . 'pt;">' . $diplom_num . '</td>
+		<td '. $st_td . $h_width[0] . 'pt;">' . $num_str . '</td>
 		<td '. $st_td . $h_width[1] . 'pt;">' . date("d.m.Y") . '</td>
-		<td '. $st_td . $h_width[2] . 'pt;">' . $const[$diplom['gid']]['gvs'] . '</td>
-		<td '. $st_td . $h_width[3] . 'pt;">' . $const[$diplom['gid']]['region'] . '</td>
-		<td '. $st_td . $h_width[4] . 'pt;">' . $diplom['stars'] . '</td>
+		<td '. $st_td . $h_width[2] . 'pt;">' . $const[$gid]['gvs'] . '</td>
+		<td '. $st_td . $h_width[3] . 'pt;">' . $const[$gid]['region'] . '</td>
+		<td '. $st_td . $h_width[4] . 'pt;">' . $stars . '</td>
 		';
+
+/*echo"<pre>";
+print_r($zayavka);
+echo"</pre>";*/
+
+$main_cache = null;
+
 foreach ($zayavka as $key => $data)
 {
+	if ($data['punkt'] == 1 and $gid !== 11) $main_cache = $key;
+
 	echo '
 		<td style="width: ' . $h_width[5] . 'pt; ' . $border . '">
 			<table style="border: none;">
@@ -173,7 +182,7 @@ echo '
 echo '
 </br>
 <p>
-	Игроку <b>' . $diplom['user'] . '</b> будет выдан (записан в базу) диплом <b>' . $const[$diplom['gid']]['gvs'] . '</b> № <b>' . $diplom_num . '</b> от <b>' . date("d.m.Y") . '</b> и присвоена <b>' . $diplom['stars'] . '-я</b> звезда.
+	Игроку <b>' . $diplom['user'] . '</b> будет выдан (записан в базу) диплом <b>' . $const[$gid]['gvs'] . '</b> № <b>' . $num_str . '</b> от <b>' . date("d.m.Y") . '</b> и присвоена <b>' . $stars . '-я</b> звезда.
 </p>
 </br>
 ';
@@ -181,7 +190,7 @@ echo '
 $caches_to_suit = array();
 foreach ($zayavka as $key => $data)
 {
-	if (($data['punkt'] !== 1) or ($data['punkt'] == 1 and $diplom['gid'] == 11))
+	if (($data['punkt'] !== 1) or ($data['punkt'] == 1 and $gid == 11))
 	{
 		$used[] = $key;
 		if($data['suitable'] !== True) 
@@ -206,9 +215,9 @@ if ($caches_to_suit)
 } 
 
 
-if (is_int($diplom['stars']/10))
+if (is_int($stars/10))
 {
-	$diplom['extra_diplom'] = $extra_diplom = $diplom['stars']/10;
+	$diplom['extra_diplom'] = $extra_diplom = $stars/10;
 	
 	$query = sprintf("SELECT MAX(extra_num) FROM $extra_table WHERE `extra_diplom` = %u", $stepen);
 	$result = mysqli_query ($link, $query) or die("0Ошибка: " . mysqli_error($link));
@@ -256,11 +265,14 @@ if ($_POST['go'])
 	$extra_ok = "";
 
 	$diplom_date = date("d.m.Y");
-	$values = array($diplom['uid'], $diplom['gid'], $diplom['diplom_num'], '"'.$diplom_date.'"', $diplom['stars'], '"'.$diplom['used_caches'].'"', '"'.$diplom['gvs_foto'].'"');
+	
+	///// Добавляем основной диплом в базу
+	$values = array($diplom['uid'], $gid, $diplom_num, '"'.$diplom_date.'"', $stars, $main_cache, '"'.$diplom['used_caches'].'"', '"'.$diplom['gvs_foto'].'"');
 	$str = implode(',',$values);
 
 	include_once ('add_diplom.php');
-	
+
+	///// Добавляем подходящие тайники в базу
 	if ($caches_to_suit)
 	{
 		foreach ($caches_to_suit as $cid => $data)
@@ -271,15 +283,17 @@ if ($_POST['go'])
 		}
 	}
 
+	///// Добавляем дополнительный диплом в базу
 	if ($diplom['extra_diplom'])
 	{
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		
-// ТУТ НУЖНО ВЫТАЩИТЬ ИЗ БАЗЫ ДИПЛОМОВ GIDы ДЕСЯТИ ДИПЛОМОВ
-		
 		$values = array((int)$uid, (int)$extra_diplom, (int)$extra_num, '"'.$diplom_date.'"','""');
 		$str = implode(',',$values);
 		include_once ('add_extra_diplom.php');
 	}
+
+	//// Обновляем количество звезд у игрока
+	include_once ('update_user_stars.php');
+
 	
 	$message = $diplom_ok . $diplom_err . $extra_ok . $extra_err . $suit_ok . $suit_err;
 
@@ -288,6 +302,9 @@ if ($_POST['go'])
 	echo '<script type="text/javascript">alert("' . $message . '");</script>';
 	echo '<script type="text/javascript">window.top.location.href = "";</script>';
 	exit;
+
+
+
 
 ////////////////////////////////////////////////////////////////////	
 // ПЕРЕХОД НА СТРАНИЦУ ИГРОКА, ГДЕ БУДУТ ВЫВЕДЕНЫ ДИПЛОМЫ И ДАННЫЕ

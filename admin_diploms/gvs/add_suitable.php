@@ -11,7 +11,7 @@ if (!mysqli_query($link, $query))
     
 }
 else 
-{
+{ 
     $suit_ok .= $cid . ' - тайник добавлен в базу подходящих тайников.\n\n';
 }
 ?>

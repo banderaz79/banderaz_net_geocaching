@@ -89,11 +89,29 @@ echo "</pre>";*/
 			{
 				$z_data[6]['stars'] = 0;
 				$_SESSION['z_data'] = $z_data;
-				echo '<script type="text/javascript">
+				/*echo '<script type="text/javascript">
 						result = confirm("uid игрока:		' . $z_data[6]['uid'] . '\nНик по uid:		' . $user_profile['unick'][0] . '\nНик в заявке:	' . $z_data[6]['E'] . '\n\n внести игрока в базу дипломов ГВС?");
 						if(result == true) {window.top.location.href = "add_user.php";}
 						else {window.top.location.href = "index.php";}
-					</script>';
+					</script>';*/
+					echo '<script type="text/javascript">
+					result = confirm("uid игрока:		' . $z_data[6]['uid'] . '\nНик по uid:		' . $user_profile['unick'][0] . '\nНик в заявке:	' . $z_data[6]['E'] . '\n\n внести игрока в базу дипломов ГВС?");
+					if(result !== true) {window.top.location.href = "index.php";}
+					</script>';	
+
+					require 'tables.php';
+					require '../../Classes/loc.php';
+					$link = mysqli_connect($a,$b,$c,$d);
+					if (!$link)
+					{
+						printf("Невозможно подключиться к базе данных. Код ошибки: %s\n", mysqli_connect_error());
+						exit;
+					}
+					$uid = mysqli_real_escape_string($link, (int)$z_data[6]['uid']);
+					$uname = mysqli_real_escape_string($link, $z_data[6]['E']);
+					$stars = mysqli_real_escape_string($link, (int)$z_data[6]['stars']);
+					$uid_request = '';
+					require_once ('add_user.php');
 			}
 			else 
 			{
